@@ -31,37 +31,44 @@ spec:
         args:
           - -c
           - |
-            echo "Starting controlled JVM OOM test..."
-
-            # 🔥 create Java program that consumes heap
-            cat <<EOF > OOM.java
             import java.util.*;
+
             public class OOM {
-              public static void main(String[] args) {
+              public static void main(String[] args) throws Exception {
+
                 List<byte[]> list = new ArrayList<>();
-                while(true) {
-                  list.add(new byte[5_000_000]); // 5MB chunks
+
+                long targetMB = 64;   // 🎯 target heap usage
+                long chunkSizeMB = 2; // each allocation = 2MB
+
+                long allocated = 0;
+
+                System.out.println("Starting controlled memory allocation...");
+
+                while (allocated < targetMB) {
+                  list.add(new byte[(int)(chunkSizeMB * 1024 * 1024)]);
+                  allocated += chunkSizeMB;
+
+                  System.out.println("Allocated: " + allocated + " MB");
+                  Thread.sleep(100);
                 }
+
+                System.out.println("✅ Reached target (" + targetMB + " MB). Stopping allocation.");
+
+                // Keep memory for some time (simulate pressure)
+                Thread.sleep(10000);
+
+                // Optional: release memory
+                list.clear();
+                System.gc();
+
+                System.out.println("♻️ Memory released. JVM healthy.");
               }
             }
-            EOF
-
-            javac OOM.java
-
-            # 🔁 LIMITED LOOP (your requirement)
-            for i in 1 2 3 4 5 6; do
-              echo "Attempt $i: triggering JVM OOM..."
-              java OOM || true
-              sleep 1
-            done
-
-            echo "Starting Tomcat after stress..."
-            catalina.sh run
 
 
 # kubectl patch deployment tomcat-oom-limited \
 # -p '{"spec":{"template":{"spec":{"containers":[{"name":"tomcat","resources":{"limits":{"memory":"256Mi"}}}]}}}}'
 
-
 # kubectl set env deployment/tomcat-oom-limited \
-# JAVA_OPTS="-Xms32m -Xmx48m"
+# JAVA_OPTS="-Xms128m -Xmx128m"
