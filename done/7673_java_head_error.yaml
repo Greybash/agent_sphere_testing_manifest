@@ -1,0 +1,55 @@
+
+
+#done
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-heap-oom
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-heap-oom
+  template:
+    metadata:
+      labels:
+        app: node-heap-oom
+    spec:
+      containers:
+        - name: node-app
+          image: node:18-slim
+          command: ["node", "-e"]
+          args:
+            - |
+             console.log("Starting Node app...");
+
+              const leak = [];
+              const LIMIT_MB = 164;
+
+              function consumeMemory() {
+                if (leak.length >= LIMIT_MB) {
+                  console.log(`Reached ${LIMIT_MB} MiB, stopping leak.`);
+                  return;
+                }
+
+                leak.push(Buffer.alloc(1024 * 1024, "x"));
+                console.log(`Allocated: ${leak.length} MiB`);
+              }
+
+              const interval = setInterval(() => {
+                consumeMemory();
+
+                if (leak.length >= LIMIT_MB) {
+                  clearInterval(interval);
+                }
+              }, 50);
+          # env:
+          #   - name: NODE_OPTIONS
+          #     value: "--max-old-space-size=64"   
+          resources:
+            requests:
+              memory: "128Mi"
+            limits:
+              memory: "128Mi"
+
+

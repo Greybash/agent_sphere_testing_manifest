@@ -1,0 +1,30 @@
+#done
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-oom-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-oom
+  template:
+    metadata:
+      labels:
+        app: backend-oom
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: backend
+          image: python:3.9-slim
+          command: ["python", "-c"]
+          args:
+            - |
+              data = []
+              for i in range(100):
+                  data.append("X" * 10**6)
+              import time
+              time.sleep(360000)
+          resources:
+            limits:
+              memory: "100Mi"

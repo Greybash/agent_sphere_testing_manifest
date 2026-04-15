@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-source
+data:
+  server.js: |
+    const express = require('express');
+    const app = express();
+
+    // ❌ Simulated async DB call that fails
+    function getUserFromDB() {
+      return new Promise((resolve, reject) => {
+        reject(new Error("Database connection failed"));
+      });
+    }
+
+    app.get('/user', async (req, res) => {
+      const user = await getUserFromDB(); // ❌ unhandled rejection
+      res.json(user);
+    });
+
+    app.listen(3000, () => console.log("Server running"));
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-api
+  template:
+    metadata:
+      labels:
+        app: node-api
+    spec:
+      containers:
+      - name: node-container
+        image: node:18-alpine
+        workingDir: /app
+        command: ["sh", "-c", "npm init -y && npm install express && node server.js"]
+        volumeMounts:
+        - name: api-code
+          mountPath: /app
+      volumes:
+      - name: api-code
+        configMap:
+          name: api-source
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-api-service
+spec:
+  selector:
+    app: node-api
+  ports:
+    - port: 80
+      targetPort: 3000
+  type: ClusterIP
+
+
+
+#   kubectl port-forward svc/node-api-service 8080:80
+# curl localhost:8080/user
+
+
+# app.get('/user', async (req, res) => {
+#   try {
+#     const user = await getUserFromDB();
+#     res.json(user);
+#   } catch (err) {
+#     console.error(err.message);
+#     res.status(500).json({ error: "Internal Server Error" });
+#   }
+# });

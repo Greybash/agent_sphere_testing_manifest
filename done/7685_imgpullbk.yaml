@@ -1,0 +1,19 @@
+#done
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imagepull-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: imagepull-test
+  template:
+    metadata:
+      labels:
+        app: imagepull-test
+    spec:
+      containers:
+        - name: app
+          image: nginx:nonexistent-tag-12345   #wrong_tag
+          imagePullPolicy: Always

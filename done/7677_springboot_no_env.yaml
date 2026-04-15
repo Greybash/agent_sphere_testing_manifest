@@ -1,0 +1,35 @@
+#done
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-fail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-fail
+  template:
+    metadata:
+      labels:
+        app: backend-fail
+    spec:
+      containers:
+        - name: backend
+          image: eclipse-temurin:17-jdk 
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Starting Spring Boot app..."
+              if [ -z "$DB_URL" ]; then
+                echo "ERROR: DB_URL is not set!"
+                exit 1
+              fi
+              sleep 3600
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+          resources:
+            requests:
+              memory: "128Mi"
+            limits:
+              memory: "256Mi"

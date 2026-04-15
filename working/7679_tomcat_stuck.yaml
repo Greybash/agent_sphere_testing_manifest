@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-db
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine   # lightweight
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: orders
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: wrongpass   # actual password
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tomcat-stuck
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tomcat-stuck
+  template:
+    metadata:
+      labels:
+        app: tomcat-stuck
+    spec:
+      containers:
+        - name: tomcat
+          image: tomcat:9.0-jdk17-temurin   # relatively lightweight
+
+          ports:
+            - containerPort: 8080
+
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Deploying blocking app..."
+
+              mkdir -p /usr/local/tomcat/webapps/ROOT
+
+              # JSP simulating DB auth failure + blocking retry
+              cat <<EOF > /usr/local/tomcat/webapps/ROOT/index.jsp
+              <%
+                while(true) {
+                  try {
+                    java.sql.Connection conn =
+                      java.sql.DriverManager.getConnection(
+                        "jdbc:postgresql://postgres-db:5432/orders",
+                        "postgres",
+                        "postgres"   // WRONG password
+                      );
+                  } catch(Exception e) {
+                    Thread.sleep(10000); // retry loop → threads block
+                  }
+                }
+              %>
+              Hello
+              EOF
+
+              catalina.sh run
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "900Mi"
+              cpu: "500m"

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readiness-fail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: readiness-fail
+  template:
+    metadata:
+      labels:
+        app: readiness-fail
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080   
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+
+# kubectl patch deployment readiness-fail -n prem \
+#   --type='json' \
+#   -p='[{"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/port","value":80}]'
