@@ -52,4 +52,6 @@ spec:
             limits:
               memory: "128Mi"
 
+# kubectl set resources deployment/node-heap-oom  --containers=node-app --requests=memory=256Mi   --limits=memory=500Mi 
+
 

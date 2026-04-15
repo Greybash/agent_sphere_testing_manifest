@@ -28,3 +28,5 @@ spec:
           resources:
             limits:
               memory: "100Mi"
+              
+# kubectl set resources deployment/backend-oom-deployment   --containers=backend   --requests=memory=256Mi   --limits=memory=500Mi 
