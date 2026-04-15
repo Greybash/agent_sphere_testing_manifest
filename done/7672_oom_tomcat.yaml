@@ -18,7 +18,7 @@ spec:
         ports:
         - containerPort: 8080
 
-        # ❌ BAD JVM CONFIG (kept intentionally)
+        # ❌ intentionally bad (for initial OOM scenario)
         env:
         - name: JAVA_OPTS
           value: "-Xms1024m -Xmx1024m"
@@ -31,6 +31,9 @@ spec:
         args:
           - -c
           - |
+            echo "Creating Java memory injector..."
+
+            cat <<EOF > OOM.java
             import java.util.*;
 
             public class OOM {
@@ -38,9 +41,8 @@ spec:
 
                 List<byte[]> list = new ArrayList<>();
 
-                long targetMB = 64;   // 🎯 target heap usage
-                long chunkSizeMB = 2; // each allocation = 2MB
-
+                long targetMB = 64;
+                long chunkSizeMB = 2;
                 long allocated = 0;
 
                 System.out.println("Starting controlled memory allocation...");
@@ -53,18 +55,26 @@ spec:
                   Thread.sleep(100);
                 }
 
-                System.out.println("✅ Reached target (" + targetMB + " MB). Stopping allocation.");
-
-                // Keep memory for some time (simulate pressure)
+                System.out.println("Reached 64MB. Holding...");
                 Thread.sleep(10000);
 
-                // Optional: release memory
                 list.clear();
                 System.gc();
 
-                System.out.println("♻️ Memory released. JVM healthy.");
+                System.out.println("Memory released.");
               }
             }
+            EOF
+
+            echo "Compiling..."
+            javac OOM.java
+
+            echo "Running memory injector..."
+            java OOM || true
+
+            echo "Starting Tomcat..."
+            catalina.sh run
+
 
 
 # kubectl patch deployment tomcat-oom-limited \
