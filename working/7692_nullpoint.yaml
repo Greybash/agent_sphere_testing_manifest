@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: java-npe-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-npe-app
+  namespace: java-npe-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: java-npe
+  template:
+    metadata:
+      labels:
+        app: java-npe
+    spec:
+      containers:
+        - name: app
+          image: openjdk:17
+          command: ["sh", "-c"]
+          args:
+            - |
+              cat <<EOF > App.java
+              public class App {
+                  public static void main(String[] args) {
+                      String config = System.getenv("APP_CONFIG");
+                      System.out.println(config.length()); // ❌ NullPointerException
+                  }
+              }
+              EOF
+
+              javac App.java
+              java App

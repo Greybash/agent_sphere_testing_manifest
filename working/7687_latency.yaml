@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: latency-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slow-app
+  namespace: latency-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: slow-app
+  template:
+    metadata:
+      labels:
+        app: slow-app
+    spec:
+      containers:
+        - name: app
+          image: python:3.10
+          command: ["python", "-c"]
+          args:
+            - |
+              import time
+              from http.server import BaseHTTPRequestHandler, HTTPServer
+
+              class Handler(BaseHTTPRequestHandler):
+                  def do_GET(self):
+                      start = time.time()
+                      # Simulate CPU-heavy work
+                      for _ in range(10**7):
+                          pass
+                      latency = time.time() - start
+                      self.send_response(200)
+                      self.end_headers()
+                      self.wfile.write(f"Response time: {latency:.2f}s".encode())
+
+              HTTPServer(("0.0.0.0", 3000), Handler).serve_forever()
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              cpu: "50m"
+            limits:
+              cpu: "100m"   # ❌ Too low → throttling → latency spike
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: slow-service
+  namespace: latency-test
+spec:
+  selector:
+    app: slow-app
+  ports:
+    - port: 80
+      targetPort: 3000

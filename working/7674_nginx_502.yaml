@@ -36,7 +36,7 @@ spec:
             EOF
             python app.py
         ports:
-        - containerPort: 5000
+        - containerPort: 80
 
 ---
 apiVersion: v1

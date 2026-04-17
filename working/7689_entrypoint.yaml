@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: entrypoint-failure-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-entrypoint-app
+  namespace: entrypoint-failure-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bad-entrypoint
+  template:
+    metadata:
+      labels:
+        app: bad-entrypoint
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          command: ["wrong-command"]   # ❌ invalid entrypoint
+          ports:
+            - containerPort: 80
