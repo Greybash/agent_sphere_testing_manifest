@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: terminating-test
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: stuck-pod
+  namespace: terminating-test
+  finalizers:
+    - example.com/finalizer   # ❌ blocks deletion
+spec:
+  containers:
+    - name: nginx
+      image: nginx:latest
