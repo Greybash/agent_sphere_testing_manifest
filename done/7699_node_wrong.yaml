@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wrong-schedule-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wrong-schedule-app
+  template:
+    metadata:
+      labels:
+        app: wrong-schedule-app
+    spec:
+      nodeSelector:
+        disktype: ultra-ssd
+      containers:
+      - name: app
+        image: nginx:latest
+        ports:
+        - containerPort: 80

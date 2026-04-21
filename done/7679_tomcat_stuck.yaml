@@ -72,7 +72,7 @@ spec:
                       java.sql.DriverManager.getConnection(
                         "jdbc:postgresql://postgres-db:5432/orders",
                         "postgres",
-                        "postgres"   // WRONG password
+                        "postgres"   
                       );
                   } catch(Exception e) {
                     Thread.sleep(10000); // retry loop → threads block

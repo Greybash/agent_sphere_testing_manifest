@@ -1,13 +1,9 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: version-conflict-test
----
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: incompatible-app
-  namespace: version-conflict-test
+
 spec:
   replicas: 1
   selector:

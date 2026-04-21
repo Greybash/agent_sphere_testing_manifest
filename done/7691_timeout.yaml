@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-timeout-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-timeout-app
+  template:
+    metadata:
+      labels:
+        app: node-timeout-app
+    spec:
+      containers:
+      - name: app
+        image: node:20-alpine
+        command: ["sh","-c"]
+        args:
+          - |
+            cat > server.js <<'EOF'
+            const http = require('http');
+
+            http.createServer(async (req,res) => {
+              const controller = new AbortController();
+              const t = setTimeout(() => controller.abort(), 10000);
+
+              try {
+                await fetch('http://10.255.255.1:8080', { signal: controller.signal });
+                res.end("ok");
+              } catch(e) {
+                res.statusCode = 504;
+                res.end("Dependency timeout: " + e.message);
+              } finally {
+                clearTimeout(t);
+              }
+            }).listen(3000, '0.0.0.0');
+            EOF
+
+            node server.js
+        ports:
+        - containerPort: 3000

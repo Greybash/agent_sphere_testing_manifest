@@ -1,13 +1,8 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: configmap-missing-test
----
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: configmap-app
-  namespace: configmap-missing-test
 spec:
   replicas: 1
   selector:
